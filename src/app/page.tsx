@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { DOC_TYPES, DOC_TYPE_LABELS, type DocType } from "@/lib/prompts";
+import { ChevronDown } from "lucide-react";
 
 export const YouTubeLink: string = `https://www.youtube.com/@itsmeprinceyt`;
 export const GitHubLink: string = `https://github.com/itsmeprinceyt`;
@@ -15,6 +17,27 @@ export default function Home() {
   const [output, setOutput] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [docType, setDocType] = useState<DocType>(DOC_TYPES.JS_DOCS);
+
+  useEffect(() => {
+    const load = () => {
+      const savedDocType = localStorage.getItem(
+        "preferred-doc-type"
+      ) as DocType | null;
+      if (savedDocType && Object.values(DOC_TYPES).includes(savedDocType)) {
+        setDocType(savedDocType);
+      }
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("preferred-doc-type", docType);
+  }, [docType]);
+
+  const handleDocTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setDocType(e.target.value as DocType);
+  };
 
   const handleGenerate = async () => {
     if (!input.trim()) return;
@@ -23,7 +46,7 @@ export default function Home() {
 
     const res = await fetch("/api/generate-docs", {
       method: "POST",
-      body: JSON.stringify({ code: input }),
+      body: JSON.stringify({ code: input, docType }),
     });
 
     const data = await res.json();
@@ -45,7 +68,7 @@ export default function Home() {
           <h1 className="text-xs font-medium tracking-widest uppercase text-neutral-900">
             Documentation Prompt Generator
           </h1>
-          <p className="text-xs text-neutral-5ss00 mt-1">
+          <p className="text-xs text-neutral-500 mt-1">
             Paste your code and generate a ready-to-use documentation prompt.
           </p>
         </div>
@@ -68,8 +91,25 @@ export default function Home() {
           />
         </div>
 
-        {/* Generate Button */}
-        <div className="w-full max-w-2xl flex justify-end mt-3">
+        {/* Generate Button with Dropdown */}
+        <div className="w-full max-w-2xl flex justify-end items-center gap-2 mt-3">
+          {/* Doc Type Dropdown */}
+          <div className="relative">
+            <select
+              value={docType}
+              onChange={handleDocTypeChange}
+              className="h-9 pl-3 pr-8 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs font-medium text-neutral-900 dark:text-neutral-100 outline-none focus:border-neutral-400 dark:focus:border-neutral-600 transition-colors cursor-pointer appearance-none"
+            >
+              {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500 pointer-events-none" />
+          </div>
+
+          {/* Generate Button */}
           <button
             onClick={handleGenerate}
             disabled={loading || !input.trim()}
@@ -146,7 +186,7 @@ export default function Home() {
               >
                 <span className="[&>svg]:h-5 [&>svg]:w-5">
                   <svg
-                    xmlns="http://www.w3.org2000/svg"
+                    xmlns="http://www.w3.org/2000/svg"
                     fill="currentColor"
                     viewBox="0 0 448 512"
                   >
